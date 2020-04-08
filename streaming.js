@@ -100,9 +100,8 @@ function StreamProcessor(sdkKey, config, requestor, diagnosticsManager, specifie
         const initData = {};
         initData[dataKind.features.namespace] = all.data.flags;
         initData[dataKind.segments.namespace] = all.data.segments;
-        featureStore.init(initData, () => {
-          cb();
-        });
+        featureStore.init(initData);
+        cb();
       } else {
         cb(new errors.LDStreamingError('Unexpected payload from event stream'));
       }
@@ -167,9 +166,8 @@ function StreamProcessor(sdkKey, config, requestor, diagnosticsManager, specifie
           const initData = {};
           initData[dataKind.features.namespace] = all.flags;
           initData[dataKind.segments.namespace] = all.segments;
-          featureStore.init(initData, () => {
-            cb();
-          });
+          featureStore.init(initData);
+          cb();
         }
       });
     });

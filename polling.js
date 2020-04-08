@@ -38,13 +38,11 @@ function PollingProcessor(config, requestor) {
           const initData = {};
           initData[dataKind.features.namespace] = allData.flags;
           initData[dataKind.segments.namespace] = allData.segments;
-          featureStore.init(initData, () => {
-            cb();
-            // Recursively call poll after the appropriate delay
-            setTimeout(() => {
-              poll(cb);
-            }, sleepFor);
-          });
+          featureStore.init(initData);
+          cb();
+          setTimeout(() => {
+            poll(cb);
+          }, sleepFor);
         } else {
           // There wasn't an error but there wasn't any new data either, so just keep polling
           setTimeout(() => {

@@ -29,14 +29,14 @@ describe('LDClient', () => {
       };
       var client = stubs.createClient({}, { flagkey: flag });
       await client.waitForInitialization();
-      var result = await client.variation(flag.key, defaultUser, 'c');
+      var result = client.variation(flag.key, defaultUser, 'c');
       expect(result).toEqual('b');
     });
 
     it('returns default for unknown flag', async () => {
       var client = stubs.createClient({}, {});
       await client.waitForInitialization();
-      var result = await client.variation('flagkey', defaultUser, 'default');
+      var result = client.variation('flagkey', defaultUser, 'default');
       expect(result).toEqual('default');
     });
 
@@ -51,7 +51,7 @@ describe('LDClient', () => {
       var logger = stubs.stubLogger();
       var client = stubs.createClient({ offline: true, logger: logger }, { flagkey: flag });
       await client.waitForInitialization();
-      var result = await client.variation('flagkey', defaultUser, 'default');
+      var result = client.variation('flagkey', defaultUser, 'default');
       expect(result).toEqual('default');
       expect(logger.info).toHaveBeenCalled();
     });
@@ -65,7 +65,7 @@ describe('LDClient', () => {
         variations: ['value']
       };
       var client = createClientWithFlagsInUninitializedStore({ flagkey: flag });
-      var result = await client.variation('flagkey', defaultUser, 'default');
+      var result = client.variation('flagkey', defaultUser, 'default');
       expect(result).toEqual('default');
     });
 
@@ -81,7 +81,7 @@ describe('LDClient', () => {
       var updateProcessor = stubs.stubUpdateProcessor();
       updateProcessor.shouldInitialize = false;
       var client = stubs.createClient({ updateProcessor: updateProcessor, logger: logger }, { flagkey: flag });
-      var result = await client.variation('flagkey', defaultUser, 'default');
+      var result = client.variation('flagkey', defaultUser, 'default');
       expect(result).toEqual('value');
       expect(logger.warn).toHaveBeenCalled();
     });
@@ -89,7 +89,7 @@ describe('LDClient', () => {
     it('returns default if flag key is not specified', async () => {
       var client = stubs.createClient({}, {});
       await client.waitForInitialization();
-      var result = await client.variation(null, defaultUser, 'default');
+      var result = client.variation(null, defaultUser, 'default');
       expect(result).toEqual('default');
     });
 
@@ -101,7 +101,7 @@ describe('LDClient', () => {
       };
       var client = stubs.createClient({}, { flagkey: flag });
       await client.waitForInitialization();
-      var result = await client.variation(flag.key, defaultUser, 'default');
+      var result = client.variation(flag.key, defaultUser, 'default');
       expect(result).toEqual('default');
     });
 
@@ -115,23 +115,10 @@ describe('LDClient', () => {
       var logger = stubs.stubLogger();
       var client = stubs.createClient({ logger: logger }, { flagkey: flag });
       client.on('ready', () => {
-        client.toggle(flag.key, defaultUser, false, (err, result) => {
-          expect(err).toBeNull();
-          expect(result).toEqual(true);
-          expect(logger.warn).toHaveBeenCalled();
-          done();
-        });
-      });
-    });
-
-    it('can use a callback instead of a Promise', done => {
-      var client = stubs.createClient({}, {});
-      client.on('ready', () => {
-        client.variation('flagkey', defaultUser, 'default', (err, result) => {
-          expect(err).toBeNull();
-          expect(result).toEqual('default');
-          done();
-        });
+        const result = client.toggle(flag.key, defaultUser, false);
+        expect(result).toEqual(true);
+        expect(logger.warn).toHaveBeenCalled();
+        done();
       });
     });
   });
@@ -149,14 +136,14 @@ describe('LDClient', () => {
       };
       var client = stubs.createClient({}, { flagkey: flag });
       await client.waitForInitialization();
-      var result = await client.variationDetail(flag.key, defaultUser, 'c');
+      var result = client.variationDetail(flag.key, defaultUser, 'c');
       expect(result).toMatchObject({ value: 'b', variationIndex: 1, reason: { kind: 'FALLTHROUGH' } });
     });
 
     it('returns default for unknown flag', async () => {
       var client = stubs.createClient({}, { });
       await client.waitForInitialization();
-      var result = await client.variationDetail('flagkey', defaultUser, 'default');
+      var result = client.variationDetail('flagkey', defaultUser, 'default');
       expect(result).toMatchObject({ value: 'default', variationIndex: null,
         reason: { kind: 'ERROR', errorKind: 'FLAG_NOT_FOUND' } });
     });
@@ -172,7 +159,7 @@ describe('LDClient', () => {
       var logger = stubs.stubLogger();
       var client = stubs.createClient({ offline: true, logger: logger }, { flagkey: flag });
       await client.waitForInitialization();
-      var result = await client.variationDetail('flagkey', defaultUser, 'default');
+      var result = client.variationDetail('flagkey', defaultUser, 'default');
       expect(result).toMatchObject({ value: 'default', variationIndex: null,
         reason: { kind: 'ERROR', errorKind: 'CLIENT_NOT_READY' }});
       expect(logger.info).toHaveBeenCalled();
@@ -187,7 +174,7 @@ describe('LDClient', () => {
         variations: ['value']
       };
       var client = createClientWithFlagsInUninitializedStore({ flagkey: flag });
-      var result = await client.variationDetail('flagkey', defaultUser, 'default');
+      var result = client.variationDetail('flagkey', defaultUser, 'default');
       expect(result).toMatchObject({ value: 'default', variationIndex: null,
         reason: { kind: 'ERROR', errorKind: 'CLIENT_NOT_READY' } });
     });
@@ -204,7 +191,7 @@ describe('LDClient', () => {
       var updateProcessor = stubs.stubUpdateProcessor();
       updateProcessor.shouldInitialize = false;
       var client = stubs.createClient({ updateProcessor: updateProcessor, logger: logger }, { flagkey: flag });
-      var result = await client.variationDetail('flagkey', defaultUser, 'default');
+      var result = client.variationDetail('flagkey', defaultUser, 'default');
       expect(result).toMatchObject({ value: 'value', variationIndex: 0, reason: { kind: 'OFF' }})
       expect(logger.warn).toHaveBeenCalled();
     });
@@ -212,7 +199,7 @@ describe('LDClient', () => {
     it('returns default if flag key is not specified', async () => {
       var client = stubs.createClient({}, { });
       await client.waitForInitialization();
-      var result = await client.variationDetail(null, defaultUser, 'default');
+      var result = client.variationDetail(null, defaultUser, 'default');
       expect(result).toMatchObject({ value: 'default', variationIndex: null,
         reason: { kind: 'ERROR', errorKind: 'FLAG_NOT_FOUND' } });
     });
@@ -225,20 +212,8 @@ describe('LDClient', () => {
       };
       var client = stubs.createClient({}, { flagkey: flag });
       await client.waitForInitialization();
-      var result = await client.variationDetail(flag.key, defaultUser, 'default');
+      var result = client.variationDetail(flag.key, defaultUser, 'default');
       expect(result).toMatchObject({ value: 'default', variationIndex: null, reason: { kind: 'OFF' } });
-    });
-
-    it('can use a callback instead of a Promise', done => {
-      var client = stubs.createClient({}, {});
-      client.on('ready', () => {
-        client.variationDetail('flagkey', defaultUser, 'default', (err, result) => {
-          expect(err).toBeNull();
-          expect(result).toMatchObject({ value: 'default', variationIndex: null,
-            reason: { kind: 'ERROR', errorKind: 'FLAG_NOT_FOUND' } });
-          done();
-        });
-      });
     });
   });
 
@@ -253,7 +228,7 @@ describe('LDClient', () => {
       var logger = stubs.stubLogger();
       var client = stubs.createClient({ logger: logger }, { feature: flag });
       await client.waitForInitialization();
-      var result = await client.allFlags(defaultUser);
+      var result = client.allFlags(defaultUser);
       expect(result).toEqual({feature: 'b'});
       expect(logger.warn).toHaveBeenCalledTimes(1); // deprecation warning
     });
@@ -267,7 +242,7 @@ describe('LDClient', () => {
       var logger = stubs.stubLogger();
       var client = stubs.createClient({ offline: true, logger: logger }, { flagkey: flag });
       await client.waitForInitialization();
-      var result = await client.allFlags(defaultUser);
+      var result = client.allFlags(defaultUser);
       expect(result).toEqual({});
       expect(logger.info).toHaveBeenCalledTimes(1);
     });
@@ -276,11 +251,10 @@ describe('LDClient', () => {
       var logger = stubs.stubLogger();
       var client = stubs.createClient({ logger: logger }, {});
       client.on('ready', () => {
-        client.all_flags(defaultUser, (err, result) => {
-          expect(result).toEqual({});
-          expect(logger.warn).toHaveBeenCalledWith(messages.deprecated('all_flags', 'allFlags'));
-          done();
-        });
+        const result = client.all_flags(defaultUser);
+        expect(result).toEqual({});
+        expect(logger.warn).toHaveBeenCalledWith(messages.deprecated('all_flags', 'allFlags'));
+        done();
       });
     });
 
@@ -298,18 +272,8 @@ describe('LDClient', () => {
       }
       var client = stubs.createClient({}, flags);
       await client.waitForInitialization();
-      var result = await client.allFlags(defaultUser);
+      var result = client.allFlags(defaultUser);
       expect(Object.keys(result).length).toEqual(flagCount);
-    });
-
-    it('can use a callback instead of a Promise', done => {
-      var client = stubs.createClient({ offline: true }, { });
-      client.on('ready', () => {
-        client.allFlags(defaultUser, (err, result) => {
-          expect(result).toEqual({});
-          done();
-        });
-      });
     });
   });
 
@@ -325,7 +289,7 @@ describe('LDClient', () => {
       };
       var client = stubs.createClient({}, { feature: flag });
       await client.waitForInitialization();
-      var state = await client.allFlagsState(defaultUser);
+      var state = client.allFlagsState(defaultUser);
       expect(state.valid).toEqual(true);
       expect(state.allValues()).toEqual({feature: 'b'});
       expect(state.getFlagValue('feature')).toEqual('b');
@@ -352,7 +316,7 @@ describe('LDClient', () => {
         'server-side-1': flag1, 'server-side-2': flag2, 'client-side-1': flag3, 'client-side-2': flag4
       });
       await client.waitForInitialization();
-      var state = await client.allFlagsState(defaultUser, { clientSideOnly: true });
+      var state = client.allFlagsState(defaultUser, { clientSideOnly: true });
       expect(state.valid).toEqual(true);
       expect(state.allValues()).toEqual({ 'client-side-1': 'value1', 'client-side-2': 'value2' });
     });
@@ -368,7 +332,7 @@ describe('LDClient', () => {
       };
       var client = stubs.createClient({}, { feature: flag });
       await client.waitForInitialization();
-      var state = await client.allFlagsState(defaultUser, { withReasons: true });
+      var state = client.allFlagsState(defaultUser, { withReasons: true });
       expect(state.valid).toEqual(true);
       expect(state.allValues()).toEqual({feature: 'b'});
       expect(state.getFlagValue('feature')).toEqual('b');
@@ -411,7 +375,7 @@ describe('LDClient', () => {
       var client = stubs.createClient({}, { flag1: flag1, flag2: flag2, flag3: flag3 });
       var user = { key: 'user' };
       await client.waitForInitialization();
-      var state = await client.allFlagsState(defaultUser, { withReasons: true, detailsOnlyForTrackedFlags: true });
+      var state = client.allFlagsState(defaultUser, { withReasons: true, detailsOnlyForTrackedFlags: true });
       expect(state.valid).toEqual(true);
       expect(state.allValues()).toEqual({flag1: 'value1', flag2: 'value2', flag3: 'value3'});
       expect(state.getFlagValue('flag1')).toEqual('value1');
@@ -449,29 +413,18 @@ describe('LDClient', () => {
       var logger = stubs.stubLogger();
       var client = stubs.createClient({ offline: true, logger: logger }, { flagkey: flag });
       await client.waitForInitialization();
-      var state = await client.allFlagsState(defaultUser);
+      var state = client.allFlagsState(defaultUser);
       expect(state.valid).toEqual(false);
       expect(state.allValues()).toEqual({});
       expect(logger.info).toHaveBeenCalledTimes(1);
     });
 
-    it('can use a callback instead of a Promise', done => {
-      var client = stubs.createClient({ offline: true }, { });
-      client.on('ready', () => {
-        client.allFlagsState(defaultUser, {}, (err, state) => {
-          expect(state.valid).toEqual(false);
-          done();
-        });
-      });
-    });
-
     it('can omit options parameter with callback', done => {
       var client = stubs.createClient({ offline: true }, { });
       client.on('ready', () => {
-        client.allFlagsState(defaultUser, (err, state) => {
+        const state = client.allFlagsState(defaultUser);
           expect(state.valid).toEqual(false);
           done();
-        });
       });
     });
   });

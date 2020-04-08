@@ -3,7 +3,7 @@ var stubs = require('./stubs');
 describe('LDClient - analytics events', () => {
 
   var eventProcessor;
-  var defaultUser = { key: 'user' };  
+  var defaultUser = { key: 'user' };
   var userWithNoKey = { name: 'Keyless Joe' };
   var userWithEmptyKey = { key: '' };
 
@@ -24,7 +24,7 @@ describe('LDClient - analytics events', () => {
       };
       var client = stubs.createClient({ eventProcessor: eventProcessor }, { flagkey: flag });
       await client.waitForInitialization();
-      await client.variation(flag.key, defaultUser, 'c');
+      client.variation(flag.key, defaultUser, 'c');
 
       expect(eventProcessor.events).toHaveLength(1);
       var e = eventProcessor.events[0];
@@ -52,7 +52,7 @@ describe('LDClient - analytics events', () => {
       };
       var client = stubs.createClient({ eventProcessor: eventProcessor }, { flagkey: flag });
       await client.waitForInitialization();
-      await client.variationDetail(flag.key, defaultUser, 'c');
+      client.variationDetail(flag.key, defaultUser, 'c');
 
       expect(eventProcessor.events).toHaveLength(1);
       var e = eventProcessor.events[0];
@@ -88,7 +88,7 @@ describe('LDClient - analytics events', () => {
       };
       var client = stubs.createClient({ eventProcessor: eventProcessor }, { flagkey: flag });
       await client.waitForInitialization();
-      await client.variation(flag.key, defaultUser, 'c');
+      client.variation(flag.key, defaultUser, 'c');
 
       expect(eventProcessor.events).toHaveLength(1);
       var e = eventProcessor.events[0];
@@ -124,7 +124,7 @@ describe('LDClient - analytics events', () => {
       };
       var client = stubs.createClient({ eventProcessor: eventProcessor }, { flagkey: flag });
       await client.waitForInitialization();
-      await client.variation(flag.key, defaultUser, 'c');
+      client.variation(flag.key, defaultUser, 'c');
 
       expect(eventProcessor.events).toHaveLength(1);
       var e = eventProcessor.events[0];
@@ -153,7 +153,7 @@ describe('LDClient - analytics events', () => {
       };
       var client = stubs.createClient({ eventProcessor: eventProcessor }, { flagkey: flag });
       await client.waitForInitialization();
-      await client.variation(flag.key, defaultUser, 'c');
+      client.variation(flag.key, defaultUser, 'c');
 
       expect(eventProcessor.events).toHaveLength(1);
       var e = eventProcessor.events[0];
@@ -183,7 +183,7 @@ describe('LDClient - analytics events', () => {
       };
       var client = stubs.createClient({ eventProcessor: eventProcessor }, { flagkey: flag });
       await client.waitForInitialization();
-      await client.variation(flag.key, defaultUser, 'c');
+      client.variation(flag.key, defaultUser, 'c');
 
       expect(eventProcessor.events).toHaveLength(1);
       var e = eventProcessor.events[0];
@@ -202,7 +202,7 @@ describe('LDClient - analytics events', () => {
     it('generates event for unknown feature', async () => {
       var client = stubs.createClient({ eventProcessor: eventProcessor }, {});
       await client.waitForInitialization();
-      await client.variation('flagkey', defaultUser, 'c');
+      client.variation('flagkey', defaultUser, 'c');
 
       expect(eventProcessor.events).toHaveLength(1);
       var e = eventProcessor.events[0];
@@ -228,7 +228,7 @@ describe('LDClient - analytics events', () => {
       var client = stubs.createClient({ eventProcessor: eventProcessor }, { flagkey: flag });
       var badUser = { name: 'Bob' };
       await client.waitForInitialization();
-      await client.variation(flag.key, badUser, 'c');
+      client.variation(flag.key, badUser, 'c');
 
       expect(eventProcessor.events).toHaveLength(1);
       var e = eventProcessor.events[0];
@@ -256,7 +256,7 @@ describe('LDClient - analytics events', () => {
       };
       var client = stubs.createClient({ eventProcessor: eventProcessor }, { flagkey: flag });
       await client.waitForInitialization();
-      await client.variation(flag.key, null, 'c');
+      client.variation(flag.key, null, 'c');
 
       expect(eventProcessor.events).toHaveLength(1);
       var e = eventProcessor.events[0];
@@ -277,7 +277,7 @@ describe('LDClient - analytics events', () => {
       var logger = stubs.stubLogger();
       var client = stubs.createClient({ eventProcessor: eventProcessor, logger: logger }, {});
       await client.waitForInitialization();
-      
+
       client.identify(defaultUser);
       expect(eventProcessor.events).toHaveLength(1);
       var e = eventProcessor.events[0];
@@ -293,7 +293,7 @@ describe('LDClient - analytics events', () => {
       var logger = stubs.stubLogger();
       var client = stubs.createClient({ eventProcessor: eventProcessor, logger: logger }, {});
       await client.waitForInitialization();
-      
+
       client.identify();
       expect(eventProcessor.events).toHaveLength(0);
       expect(logger.warn).toHaveBeenCalledTimes(1);
@@ -303,7 +303,7 @@ describe('LDClient - analytics events', () => {
       var logger = stubs.stubLogger();
       var client = stubs.createClient({ eventProcessor: eventProcessor, logger: logger }, {});
       await client.waitForInitialization();
-      
+
       client.identify(userWithNoKey);
       expect(eventProcessor.events).toHaveLength(0);
       expect(logger.warn).toHaveBeenCalledTimes(1);
@@ -313,7 +313,7 @@ describe('LDClient - analytics events', () => {
       var logger = stubs.stubLogger();
       var client = stubs.createClient({ eventProcessor: eventProcessor, logger: logger }, {});
       await client.waitForInitialization();
-      
+
       client.identify(userWithEmptyKey);
       expect(eventProcessor.events).toHaveLength(0);
       expect(logger.warn).toHaveBeenCalledTimes(1);

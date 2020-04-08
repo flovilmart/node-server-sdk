@@ -118,9 +118,9 @@ describe('FileDataSource', function() {
     var fds = setupDataSource({ paths: [path] });
 
     expect(fds.initialized()).toBe(false);
-    expect(await promisifySingle(store.initialized)()).toBe(false);
-    expect(await promisifySingle(store.all)(dataKind.features)).toEqual({});
-    expect(await promisifySingle(store.all)(dataKind.segments)).toEqual({});
+    expect(store.initialized()).toBe(false);
+    expect(store.all(dataKind.features)).toEqual({});
+    expect(store.all(dataKind.segments)).toEqual({});
   });
 
   async function testLoadAllProperties(content) {
@@ -129,12 +129,12 @@ describe('FileDataSource', function() {
     await promisifySingle(fds.start)();
 
     expect(fds.initialized()).toBe(true);
-    expect(await promisifySingle(store.initialized)()).toBe(true);
-    var items = await promisifySingle(store.all)(dataKind.features);
+    expect(store.initialized()).toBe(true);
+    var items = store.all(dataKind.features);
     expect(sorted(Object.keys(items))).toEqual([ flag1Key, flag2Key ]);
-    var flag = await promisifySingle(store.get)(dataKind.features, flag1Key);
+    var flag = store.get(dataKind.features, flag1Key);
     expect(flag).toEqual(flag1);
-    items = await promisifySingle(store.all)(dataKind.segments);
+    items = store.all(dataKind.segments);
     expect(items).toEqual({ seg1: segment1 });
   }
 
@@ -147,7 +147,7 @@ describe('FileDataSource', function() {
     await promisifySingle(fds.start)();
 
     expect(fds.initialized()).toBe(false);
-    expect(await promisifySingle(store.initialized)()).toBe(false);
+    expect(store.initialized()).toBe(false);
   });
 
   it('does not load if file data is malformed', async () => {
@@ -156,7 +156,7 @@ describe('FileDataSource', function() {
     await promisifySingle(fds.start)();
 
     expect(fds.initialized()).toBe(false);
-    expect(await promisifySingle(store.initialized)()).toBe(false);
+    expect(store.initialized()).toBe(false);
   });
 
   it('can load multiple files', async () => {
@@ -166,11 +166,11 @@ describe('FileDataSource', function() {
     await promisifySingle(fds.start)();
 
     expect(fds.initialized()).toBe(true);
-    expect(await promisifySingle(store.initialized)()).toBe(true);
+    expect(store.initialized()).toBe(true);
 
-    var items = await promisifySingle(store.all)(dataKind.features);
+    var items = store.all(dataKind.features);
     expect(Object.keys(items)).toEqual([ flag1Key ]);
-    items = await promisifySingle(store.all)(dataKind.segments);
+    items = store.all(dataKind.segments);
     expect(Object.keys(items)).toEqual([ segment1Key ]);
   });
 
@@ -181,22 +181,22 @@ describe('FileDataSource', function() {
     await promisifySingle(fds.start)();
 
     expect(fds.initialized()).toBe(false);
-    expect(await promisifySingle(store.initialized)()).toBe(false);
+    expect(store.initialized()).toBe(false);
   });
 
   it('does not reload modified file if auto-update is off', async () => {
     var path = await makeTempFile(flagOnlyJson);
     var fds = setupDataSource({ paths: [path] });
     await promisifySingle(fds.start)();
-    
-    var items = await promisifySingle(store.all)(dataKind.segments);
+
+    var items = store.all(dataKind.segments);
     expect(Object.keys(items).length).toEqual(0);
 
     await sleepAsync(200);
     await replaceFileContent(path, segmentOnlyJson);
     await sleepAsync(200);
 
-    items = await promisifySingle(store.all)(dataKind.segments);
+    items = store.all(dataKind.segments);
     expect(Object.keys(items).length).toEqual(0);
   });
 
@@ -204,15 +204,15 @@ describe('FileDataSource', function() {
     var path = await makeTempFile(flagOnlyJson);
     var fds = setupDataSource({ paths: [path], autoUpdate: true });
     await promisifySingle(fds.start)();
-    
-    var items = await promisifySingle(store.all)(dataKind.segments);
+
+    var items = store.all(dataKind.segments);
     expect(Object.keys(items).length).toEqual(0);
 
     await sleepAsync(200);
     await replaceFileContent(path, segmentOnlyJson);
     await sleepAsync(4000); // the long wait here is to see if we get any spurious reloads (ch32123)
 
-    items = await promisifySingle(store.all)(dataKind.segments);
+    items = store.all(dataKind.segments);
     expect(Object.keys(items).length).toEqual(1);
 
     // We call logger.warn() once for each reload. It should only have reloaded once, but for
@@ -230,7 +230,7 @@ describe('FileDataSource', function() {
 
     try {
       await client.waitForInitialization();
-      var result = await client.variation(flag2Key, user, '');
+      var result = client.variation(flag2Key, user, '');
       expect(result).toEqual(flag2Value);
     } finally {
       client.close();
@@ -246,7 +246,7 @@ describe('FileDataSource', function() {
 
     try {
       await client.waitForInitialization();
-      var result = await client.variation(flag1Key, user, '');
+      var result = client.variation(flag1Key, user, '');
       expect(result).toEqual('on');
     } finally {
       client.close();

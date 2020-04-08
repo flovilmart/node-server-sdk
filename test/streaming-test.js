@@ -79,12 +79,12 @@ describe('StreamProcessor', () => {
 
       es.handlers.put({ data: JSON.stringify(putData) });
 
-      var flag = await promisifySingle(featureStore.initialized)();
+      var flag = featureStore.initialized();
       expect(flag).toEqual(true);
-      
-      var f = await promisifySingle(featureStore.get)(dataKind.features, 'flagkey');
+
+      var f = featureStore.get(dataKind.features, 'flagkey');
       expect(f.version).toEqual(1);
-      var s = await promisifySingle(featureStore.get)(dataKind.segments, 'segkey');
+      var s = featureStore.get(dataKind.segments, 'segkey');
       expect(s.version).toEqual(2);
     });
 
@@ -93,7 +93,7 @@ describe('StreamProcessor', () => {
       var config = { featureStore: featureStore, logger: stubs.stubLogger() };
       var es = fakeEventSource();
       var sp = createProcessor(config, es);
-      
+
       var waitUntilStarted = promisifySingle(sp.start)();
       es.handlers.put({ data: JSON.stringify(putData) });
       var result = await waitUntilStarted;
@@ -105,7 +105,7 @@ describe('StreamProcessor', () => {
       var config = { featureStore: featureStore, logger: stubs.stubLogger() };
       var es = fakeEventSource();
       var sp = createProcessor(config, es);
-      
+
       var waitUntilStarted = promisifySingle(sp.start)();
       es.handlers.put({ data: '{not-good' });
       var result = await waitUntilStarted;
@@ -151,7 +151,7 @@ describe('StreamProcessor', () => {
       sp.start();
       es.handlers.patch({ data: JSON.stringify(patchData) });
 
-      var f = await promisifySingle(featureStore.get)(dataKind.features, 'flagkey');
+      var f = featureStore.get(dataKind.features, 'flagkey');
       expect(f.version).toEqual(1);
     });
 
@@ -169,7 +169,7 @@ describe('StreamProcessor', () => {
       sp.start();
       es.handlers.patch({ data: JSON.stringify(patchData) });
 
-      var s = await promisifySingle(featureStore.get)(dataKind.segments, 'segkey');
+      var s = featureStore.get(dataKind.segments, 'segkey');
       expect(s.version).toEqual(1);
     });
 
@@ -178,7 +178,7 @@ describe('StreamProcessor', () => {
       var config = { featureStore: featureStore, logger: stubs.stubLogger() };
       var es = fakeEventSource();
       var sp = createProcessor(config, es);
-      
+
       var waitForCallback = promisifySingle(sp.start)();
       es.handlers.patch({ data: '{not-good' });
       var result = await waitForCallback;
@@ -196,14 +196,14 @@ describe('StreamProcessor', () => {
       sp.start();
 
       var flag = { key: 'flagkey', version: 1 }
-      await promisifySingle(featureStore.upsert)(dataKind.features, flag);
-      var f = await promisifySingle(featureStore.get)(dataKind.features, flag.key);
+      featureStore.upsert(dataKind.features, flag);
+      var f = featureStore.get(dataKind.features, flag.key);
       expect(f).toEqual(flag);
 
       var deleteData = { path: '/flags/' + flag.key, version: 2 };
       es.handlers.delete({ data: JSON.stringify(deleteData) });
 
-      var f = await promisifySingle(featureStore.get)(dataKind.features, flag.key);
+      var f = featureStore.get(dataKind.features, flag.key);
       expect(f).toBe(null);
     });
 
@@ -216,14 +216,14 @@ describe('StreamProcessor', () => {
       sp.start();
 
       var segment = { key: 'segkey', version: 1 }
-      await promisifySingle(featureStore.upsert)(dataKind.segments, segment);
-      var s = await promisifySingle(featureStore.get)(dataKind.segments, segment.key);
+      featureStore.upsert(dataKind.segments, segment);
+      var s = featureStore.get(dataKind.segments, segment.key);
       expect(s).toEqual(segment);
 
       var deleteData = { path: '/segments/' + segment.key, version: 2 };
       es.handlers.delete({ data: JSON.stringify(deleteData) });
 
-      s = await promisifySingle(featureStore.get)(dataKind.segments, segment.key);
+      s = featureStore.get(dataKind.segments, segment.key);
       expect(s).toBe(null);
     });
 
@@ -232,7 +232,7 @@ describe('StreamProcessor', () => {
       var config = { featureStore: featureStore, logger: stubs.stubLogger() };
       var es = fakeEventSource();
       var sp = createProcessor(config, es);
-      
+
       var waitForResult = promisifySingle(sp.start)();
       es.handlers.delete({ data: '{not-good' });
       var result = await waitForResult;
@@ -266,11 +266,11 @@ describe('StreamProcessor', () => {
       es.handlers['indirect/put']({});
 
       await sleepAsync(0);
-      var f = await promisifySingle(featureStore.get)(dataKind.features, 'flagkey');
+      var f = featureStore.get(dataKind.features, 'flagkey');
       expect(f.version).toEqual(1);
-      var s = await promisifySingle(featureStore.get)(dataKind.segments, 'segkey');
+      var s = featureStore.get(dataKind.segments, 'segkey');
       expect(s.version).toEqual(2);
-      var value = await promisifySingle(featureStore.initialized)();
+      var value = featureStore.initialized();
       expect(value).toBe(true);
     });
   });
@@ -296,7 +296,7 @@ describe('StreamProcessor', () => {
       es.handlers['indirect/patch']({ data: '/flags/flagkey' });
 
       await sleepAsync(0);
-      var f = await promisifySingle(featureStore.get)(dataKind.features, 'flagkey');
+      var f = featureStore.get(dataKind.features, 'flagkey');
       expect(f.version).toEqual(1);
     });
 
@@ -320,7 +320,7 @@ describe('StreamProcessor', () => {
       es.handlers['indirect/patch']({ data: '/segments/segkey' });
 
       await sleepAsync(0);
-      var s = await promisifySingle(featureStore.get)(dataKind.segments, 'segkey');
+      var s = featureStore.get(dataKind.segments, 'segkey');
       expect(s.version).toEqual(1);
     });
   });
@@ -355,7 +355,7 @@ describe('StreamProcessor', () => {
     expect(si.failed).toBeTruthy();
     expect(si.durationMillis).toBeGreaterThanOrEqual(0);
   }
-  
+
   function testRecoverableHttpError(status) {
     const err = new Error('sorry');
     err.status = status;
@@ -380,7 +380,7 @@ describe('StreamProcessor', () => {
     const es = fakeEventSource();
     const sp = createProcessor(config, es, null, manager);
 
-    const waitForStart = promisifySingle(sp.start)();  
+    const waitForStart = promisifySingle(sp.start)();
     es.instance.simulateError(err);
     const errReceived = await waitForStart;
 
@@ -395,7 +395,7 @@ describe('StreamProcessor', () => {
     expect(si.failed).toBeTruthy();
     expect(si.durationMillis).toBeGreaterThanOrEqual(0);
   }
-  
+
   function testUnrecoverableHttpError(status) {
     const err = new Error('sorry');
     err.status = status;

@@ -91,12 +91,11 @@ function FileDataSource(options) {
     }
 
     function initStorePromise(data) {
-      return new Promise(resolve =>
-        featureStore.init(data, () => {
-          inited = true;
-          resolve();
-        })
-      );
+      return new Promise(resolve => {
+        featureStore.init(data);
+        inited = true;
+        resolve();
+      });
     }
 
     function parseData(data) {

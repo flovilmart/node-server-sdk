@@ -5,7 +5,6 @@
 // developer can use all of the SDK features.
 
 import * as ld from 'launchdarkly-node-server-sdk';
-import * as redis from 'redis';
 
 var logger: ld.LDLogger = {
   error: (...args) => { },
@@ -70,28 +69,12 @@ client.track('key', user, { ok: 1 });
 client.track('key', user, null, 1.5);
 
 // evaluation methods with callbacks
-client.variation('key', user, false, (value: ld.LDFlagValue) => { });
-client.variation('key', user, 2, (value: ld.LDFlagValue) => { });
-client.variation('key', user, 'default', (value: ld.LDFlagValue) => { });
-client.variationDetail('key', user, 'default', (detail: ld.LDEvaluationDetail) => {
-  var detailValue: ld.LDFlagValue = detail.value;
-  var detailIndex: number | undefined = detail.variationIndex;
-  var detailReason: ld.LDEvaluationReason = detail.reason;  
-});
-client.allFlags(user, (flagSet: ld.LDFlagSet) =>  {
-  var flagSetValue: ld.LDFlagValue = flagSet['key'];
-});
-
-// evaluation methods with promises
-client.variation('key', user, false).then((value: ld.LDFlagValue) => { });
-client.variation('key', user, 2).then((value: ld.LDFlagValue) => { });
-client.variation('key', user, 'default').then((value: ld.LDFlagValue) => { });
-client.variationDetail('key', user, 'default').then((detail: ld.LDEvaluationDetail) => { });
-client.allFlags(user).then((flagSet: ld.LDFlagSet) => { });
-
-// Redis integration
-var redisStore0 = ld.RedisFeatureStore();
-var myRedisOpts: redis.ClientOpts = {};
-var redisStore1 = ld.RedisFeatureStore(myRedisOpts, 30, 'prefix', logger);
-var myRedisClient: redis.RedisClient = new redis.RedisClient(myRedisOpts);
-var redisStore2 = ld.RedisFeatureStore(undefined, 30, 'prefix', logger, myRedisClient);
+var value: ld.LDFlagValue = client.variation('key', user, false);
+var value: ld.LDFlagValue = client.variation('key', user, 2);
+var value: ld.LDFlagValue = client.variation('key', user, 'default');
+const detail = client.variationDetail('key', user, 'default');
+var detailValue: ld.LDFlagValue = detail.value;
+var detailIndex: number | undefined = detail.variationIndex;
+var detailReason: ld.LDEvaluationReason = detail.reason;
+var flagSet = client.allFlags(user);
+var flagSetValue: ld.LDFlagValue = flagSet['key'];

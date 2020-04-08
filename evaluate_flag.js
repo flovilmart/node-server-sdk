@@ -4,8 +4,6 @@ const operators = require('./operators');
 const dataKind = require('./versioned_data_kind');
 const util = require('util');
 const stringifyAttrs = require('./utils/stringifyAttrs');
-const { safeAsyncEachSeries } = require('./utils/asyncUtils');
-
 const builtins = ['key', 'ip', 'country', 'email', 'firstName', 'lastName', 'avatar', 'name', 'anonymous'];
 const userAttrsToStringifyForEvaluation = ['key', 'secondary'];
 // Currently we are not stringifying the rest of the built-in attributes prior to evaluation, only for events.
@@ -15,92 +13,85 @@ const noop = () => {};
 
 // Callback receives (err, detail, events) where detail has the properties "value", "variationIndex", and "reason";
 // detail will never be null even if there's an error.
-function evaluate(flag, user, featureStore, eventFactory, maybeCallback) {
-  const cb = maybeCallback || noop;
+function evaluate(flag, user, featureStore, eventFactory) {
   if (!user || user.key === null || user.key === undefined) {
-    cb(null, errorResult('USER_NOT_SPECIFIED'), []);
-    return;
+    return {
+      err: null,
+      detail: errorResult('USER_NOT_SPECIFIED'),
+      events: []
+    };
   }
 
   if (!flag) {
-    cb(null, errorResult('FLAG_NOT_FOUND'), []);
+    return {
+      err: null,
+      detail: errorResult('FLAG_NOT_FOUND'),
+      events: []
+    };
     return;
   }
 
   const sanitizedUser = stringifyAttrs(user, userAttrsToStringifyForEvaluation);
   const events = [];
-  evalInternal(flag, sanitizedUser, featureStore, events, eventFactory, (err, detail) => {
-    cb(err, detail, events);
-  });
+  const { err, detail } = evalInternal(flag, sanitizedUser, featureStore, events, eventFactory);
+  return { err, detail, events };
 }
 
-function evalInternal(flag, user, featureStore, events, eventFactory, cb) {
+function evalInternal(flag, user, featureStore, events, eventFactory) {
   // If flag is off, return the off variation
   if (!flag.on) {
-    getOffResult(flag, { kind: 'OFF' }, cb);
-    return;
+    return getOffResult(flag, { kind: 'OFF' });
   }
 
-  checkPrerequisites(flag, user, featureStore, events, eventFactory, (err, failureReason) => {
-    if (err || failureReason) {
-      getOffResult(flag, failureReason, cb);
-    } else {
-      evalRules(flag, user, featureStore, cb);
-    }
-  });
+  const { err, reason } = checkPrerequisites(flag, user, featureStore, events, eventFactory);
+  if (err || reason) {
+    return getOffResult(flag, reason);
+  } else {
+    return evalRules(flag, user, featureStore);
+  }
 }
 
 // Callback receives (err, reason) where reason is null if successful, or a "prerequisite failed" reason
-function checkPrerequisites(flag, user, featureStore, events, eventFactory, cb) {
+function checkPrerequisites(flag, user, featureStore, events, eventFactory) {
   if (flag.prerequisites && flag.prerequisites.length) {
-    safeAsyncEachSeries(
-      flag.prerequisites,
-      (prereq, callback) => {
-        featureStore.get(dataKind.features, prereq.key, prereqFlag => {
-          // If the flag does not exist in the store or is not on, the prerequisite
-          // is not satisfied
-          if (!prereqFlag) {
-            callback({
-              key: prereq.key,
-              err: new Error('Could not retrieve prerequisite feature flag "' + prereq.key + '"'),
-            });
-            return;
-          }
-          evalInternal(prereqFlag, user, featureStore, events, eventFactory, (err, detail) => {
-            // If there was an error, the value is null, the variation index is out of range,
-            // or the value does not match the indexed variation the prerequisite is not satisfied
-            events.push(eventFactory.newEvalEvent(prereqFlag, user, detail, null, flag));
-            if (err) {
-              callback({ key: prereq.key, err: err });
-            } else if (!prereqFlag.on || detail.variationIndex !== prereq.variation) {
-              // Note that if the prerequisite flag is off, we don't consider it a match no matter what its
-              // off variation was. But we still evaluate it and generate an event.
-              callback({ key: prereq.key });
-            } else {
-              // The prerequisite was satisfied
-              callback(null);
-            }
-          });
-        });
-      },
-      errInfo => {
-        if (errInfo) {
-          cb(errInfo.err, {
-            kind: 'PREREQUISITE_FAILED',
-            prerequisiteKey: errInfo.key,
-          });
-        } else {
-          cb(null, null);
+    for (const prereq of flag.prerequisites) {
+      let errInfo;
+      const prereqFlag = featureStore.get(dataKind.features, prereq.key);
+      if (!prereqFlag) {
+        errInfo = {
+          key: prereq.key,
+          err: new Error('Could not retrieve prerequisite feature flag "' + prereq.key + '"'),
+        };
+      } else {
+        const { err, detail } = evalInternal(prereqFlag, user, featureStore, events, eventFactory);
+        // If there was an error, the value is null, the variation index is out of range,
+        // or the value does not match the indexed variation the prerequisite is not satisfied
+        events.push(eventFactory.newEvalEvent(prereqFlag, user, detail, null, flag));
+        if (err) {
+          errInfo = { key: prereq.key, err: err };
+        } else if (!prereqFlag.on || detail.variationIndex !== prereq.variation) {
+          // Note that if the prerequisite flag is off, we don't consider it a match no matter what its
+          // off variation was. But we still evaluate it and generate an event.
+          errInfo = { key: prereq.key };
         }
       }
-    );
-  } else {
-    cb(null, null);
+
+      if (errInfo) {
+        return {
+          err: errInfo.err,
+          reason: {
+            kind: 'PREREQUISITE_FAILED',
+            prerequisiteKey: errInfo.key,
+          }
+        };
+      }
+    }
   }
+  return { err: null, detail: null };
 }
 
 // Callback receives (err, detail)
-function evalRules(flag, user, featureStore, cb) {
+function evalRules(flag, user, featureStore) {
   // Check target matches
   for (let i = 0; i < (flag.targets || []).length; i++) {
     const target = flag.targets[i];
@@ -111,85 +102,54 @@ function evalRules(flag, user, featureStore, cb) {
 
     for (let j = 0; j < target.values.length; j++) {
       if (user.key === target.values[j]) {
-        getVariation(flag, target.variation, { kind: 'TARGET_MATCH' }, cb);
-        return;
+        return getVariation(flag, target.variation, { kind: 'TARGET_MATCH' });
       }
     }
   }
 
-  safeAsyncEachSeries(
-    flag.rules,
-    (rule, callback) => {
-      ruleMatchUser(rule, user, featureStore, matched => {
-        // We raise an "error" on the first rule that *does* match, to stop evaluating more rules
-        callback(matched ? rule : null);
-      });
-    },
-    // The following function executes once all of the rules have been checked
-    err => {
-      // we use the "error" value to indicate that a rule was successfully matched (since we only care
-      // about the first match, and eachSeries terminates on the first "error")
-      if (err) {
-        const rule = err;
-        const reason = { kind: 'RULE_MATCH', ruleId: rule.id };
-        for (let i = 0; i < flag.rules.length; i++) {
-          if (flag.rules[i].id === rule.id) {
-            reason.ruleIndex = i;
-            break;
-          }
+  for (const rule of (flag.rules || [])) {
+    const matched = ruleMatchUser(rule, user, featureStore);
+    if (matched) {
+      const reason = { kind: 'RULE_MATCH', ruleId: rule.id };
+      for (let i = 0; i < flag.rules.length; i++) {
+        if (flag.rules[i].id === rule.id) {
+          reason.ruleIndex = i;
+          break;
         }
-        getResultForVariationOrRollout(rule, user, flag, reason, cb);
-      } else {
-        // no rule matched; check the fallthrough
-        getResultForVariationOrRollout(flag.fallthrough, user, flag, { kind: 'FALLTHROUGH' }, cb);
       }
+      return getResultForVariationOrRollout(rule, user, flag, reason);
     }
-  );
+  }
+  // no rule matched; check the fallthrough
+  return getResultForVariationOrRollout(flag.fallthrough, user, flag, { kind: 'FALLTHROUGH' });
 }
 
-function ruleMatchUser(r, user, featureStore, cb) {
+function ruleMatchUser(r, user, featureStore) {
   if (!r.clauses) {
-    cb(false);
-    return;
+    return false;
   }
 
   // A rule matches if all its clauses match.
-  safeAsyncEachSeries(
-    r.clauses,
-    (clause, callback) => {
-      clauseMatchUser(clause, user, featureStore, matched => {
-        // on the first clause that does *not* match, we raise an "error" to stop the loop
-        callback(matched ? null : clause);
-      });
-    },
-    err => {
-      cb(!err);
+  for (const clause of r.clauses) {
+    const matched = clauseMatchUser(clause, user, featureStore);
+    if (!matched) {
+      return false;
     }
-  );
+  }
+  return true;
 }
 
-function clauseMatchUser(c, user, featureStore, cb) {
+function clauseMatchUser(c, user, featureStore) {
   if (c.op === 'segmentMatch') {
-    safeAsyncEachSeries(
-      c.values,
-      (value, callback) => {
-        featureStore.get(dataKind.segments, value, segment => {
-          if (segment && segmentMatchUser(segment, user)) {
-            // on the first segment that matches, we raise an "error" to stop the loop
-            callback(segment);
-          } else {
-            callback(null);
-          }
-        });
-      },
-      // The following function executes once all of the clauses have been checked
-      err => {
-        // an "error" indicates that a segment *did* match
-        cb(maybeNegate(c, !!err));
+    for (const value of c.values) {
+      const segment = featureStore.get(dataKind.segments, value);
+      if (segment && segmentMatchUser(segment, user)) {
+        return maybeNegate(c, !!segment);
       }
-    );
+    }
+    return maybeNegate(c, false);
   } else {
-    cb(clauseMatchUserNoSegments(c, user));
+    return clauseMatchUserNoSegments(c, user);
   }
 }
 
@@ -268,31 +228,31 @@ function matchAny(matchFn, value, values) {
   return false;
 }
 
-function getVariation(flag, index, reason, cb) {
+function getVariation(flag, index, reason) {
   if (index === null || index === undefined || index < 0 || index >= flag.variations.length) {
-    cb(new Error('Invalid variation index in flag'), errorResult('MALFORMED_FLAG'));
+    return { err: new Error('Invalid variation index in flag'), detail: errorResult('MALFORMED_FLAG') };
   } else {
-    cb(null, { value: flag.variations[index], variationIndex: index, reason: reason });
+    return { err: null, detail: { value: flag.variations[index], variationIndex: index, reason: reason } };
   }
 }
 
-function getOffResult(flag, reason, cb) {
+function getOffResult(flag, reason) {
   if (flag.offVariation === null || flag.offVariation === undefined) {
-    cb(null, { value: null, variationIndex: null, reason: reason });
+    return { err: null, detail: { value: null, variationIndex: null, reason: reason } };
   } else {
-    getVariation(flag, flag.offVariation, reason, cb);
+    return getVariation(flag, flag.offVariation, reason);
   }
 }
 
-function getResultForVariationOrRollout(r, user, flag, reason, cb) {
+function getResultForVariationOrRollout(r, user, flag, reason) {
   if (!r) {
-    cb(new Error('Fallthrough variation undefined'), errorResult('MALFORMED_FLAG'));
+    return { err: new Error('Fallthrough variation undefined'), detail: errorResult('MALFORMED_FLAG') };
   } else {
     const index = variationForUser(r, user, flag);
     if (index === null || index === undefined) {
-      cb(new Error('Variation/rollout object with no variation or rollout'), errorResult('MALFORMED_FLAG'));
+      return { err: new Error('Variation/rollout object with no variation or rollout'), detail: errorResult('MALFORMED_FLAG') };
     } else {
-      getVariation(flag, index, reason, cb);
+      return getVariation(flag, index, reason);
     }
   }
 }

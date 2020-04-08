@@ -23,26 +23,22 @@ function InMemoryFeatureStore() {
 
   const store = {};
 
-  function callbackResult(cb, result) {
-    cb && cb(result);
-  }
-
-  store.get = (kind, key, cb) => {
+  store.get = (kind, key) => {
     const items = allData[kind.namespace] || {};
     if (Object.hasOwnProperty.call(items, key)) {
       const item = items[key];
 
       if (!item || item.deleted) {
-        callbackResult(cb, null);
+        return null;
       } else {
-        callbackResult(cb, item);
+        return item;
       }
     } else {
-      callbackResult(cb, null);
+      return null;
     }
   };
 
-  store.all = (kind, cb) => {
+  store.all = kind => {
     const results = {};
     const items = allData[kind.namespace] || {};
 
@@ -55,16 +51,15 @@ function InMemoryFeatureStore() {
       }
     }
 
-    callbackResult(cb, results);
+    return results;
   };
 
-  store.init = (newData, cb) => {
+  store.init = newData => {
     allData = newData;
     initCalled = true;
-    callbackResult(cb);
   };
 
-  store.delete = (kind, key, version, cb) => {
+  store.delete = (kind, key, version) => {
     let items = allData[kind.namespace];
     if (!items) {
       items = {};
@@ -79,11 +74,9 @@ function InMemoryFeatureStore() {
     } else {
       items[key] = deletedItem;
     }
-
-    callbackResult(cb);
   };
 
-  store.upsert = (kind, item, cb) => {
+  store.upsert = (kind, item) => {
     const key = item.key;
     let items = allData[kind.namespace];
     if (!items) {
@@ -99,13 +92,9 @@ function InMemoryFeatureStore() {
     } else {
       items[key] = clone(item);
     }
-
-    callbackResult(cb);
   };
 
-  store.initialized = cb => {
-    callbackResult(cb, initCalled === true);
-  };
+  store.initialized = () => initCalled === true;
 
   store.close = () => {
     // Close on the in-memory store is a no-op

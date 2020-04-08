@@ -24,12 +24,8 @@
   },
   "homepage": "https://github.com/launchdarkly/node-server-sdk",
   "dependencies": {
-    "@types/redis": "2.8.6",
-    "async": "^3.1.0",
     "launchdarkly-eventsource": "1.2.0",
     "lrucache": "^1.0.3",
-    "node-cache": "^4.2.0",
-    "redis": "^2.6.0-2",
     "semver": "^6.3.0",
     "tunnel": "0.0.6",
     "uuid": "^3.3.3",
@@ -37,9 +33,10 @@
     "yaml": "^1.0.1"
   },
   "engines": {
-    "node": ">= 0.8.x"
+    "node": ">= 10.0.x"
   },
   "devDependencies": {
+    "node-cache": "^4.2.0",
     "@babel/core": "7.4.3",
     "@babel/preset-env": "7.4.3",
     "@types/node": "13.7.4",
@@ -54,6 +51,9 @@
     "prettier": "1.19.1",
     "tmp": "0.0.33",
     "typescript": "^3.8.3"
+  },
+  "optionalPeerDependencies": {
+    "node-cache": "^4.2.0"
   },
   "jest": {
     "rootDir": ".",

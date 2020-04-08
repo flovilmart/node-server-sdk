@@ -6,20 +6,20 @@ var dataKind = require('../versioned_data_kind');
 var featureStore = new InMemoryFeatureStore();
 var eventFactory = EventFactory(false);
 
-function defineFeatures(features, cb) {
+function defineFeatures(features) {
   var data = {};
   data[dataKind.features.namespace] = {};
   for (var i in features) {
     data[dataKind.features.namespace][features[i].key] = features[i];
   }
-  featureStore.init(data, cb)
+  featureStore.init(data);
 }
 
-function defineSegment(segment, cb) {
+function defineSegment(segment) {
   var data = {};
   data[dataKind.segments.namespace] = {};
   data[dataKind.segments.namespace][segment.key] = segment;
-  featureStore.init(data, cb);
+  featureStore.init(data);
 }
 
 function makeFlagWithRules(rules, fallthrough) {
@@ -47,22 +47,22 @@ function makeBooleanFlagWithRules(rules) {
     salt: '',
     fallthrough: { variation: 0 },
     offVariation: 0,
-    variations: [ false, true ],
+    variations: [false, true],
     version: 1
   };
 }
 
 function makeBooleanFlagWithOneClause(clause) {
-  return makeBooleanFlagWithRules([ { clauses: [ clause ], variation: 1 } ]);
+  return makeBooleanFlagWithRules([{ clauses: [clause], variation: 1 }]);
 }
 
 function makeFlagWithSegmentMatch(segment) {
-  return makeBooleanFlagWithOneClause({ attribute: '', op: 'segmentMatch', values: [ segment.key ]});
+  return makeBooleanFlagWithOneClause({ attribute: '', op: 'segmentMatch', values: [segment.key] });
 }
 
-describe('evaluate', () => {
+describe('AAAA evaluate', () => {
 
-  it('returns off variation if flag is off', done => {
+  it('returns off variation if flag is off', () => {
     var flag = {
       key: 'feature',
       on: false,
@@ -71,14 +71,12 @@ describe('evaluate', () => {
       variations: ['a', 'b', 'c']
     };
     var user = { key: 'x' };
-    evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail, events) => {
-      expect(detail).toMatchObject({ value: 'b', variationIndex: 1, reason: { kind: 'OFF' } });
-      expect(events).toMatchObject([]);
-      done();
-    });
+    const { detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(detail).toMatchObject({ value: 'b', variationIndex: 1, reason: { kind: 'OFF' } });
+    expect(events).toMatchObject([]);
   });
 
-  it('returns null if flag is off and off variation is unspecified', done => {
+  it('returns null if flag is off and off variation is unspecified', () => {
     var flag = {
       key: 'feature',
       on: false,
@@ -86,14 +84,12 @@ describe('evaluate', () => {
       variations: ['a', 'b', 'c']
     };
     var user = { key: 'x' };
-    evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail, events) => {
-      expect(detail).toMatchObject({ value: null, variationIndex: null, reason: { kind: 'OFF' } });
-      expect(events).toMatchObject([]);
-      done();
-    });
+    const { detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(detail).toMatchObject({ value: null, variationIndex: null, reason: { kind: 'OFF' } });
+    expect(events).toMatchObject([]);
   });
 
-  it('returns error if off variation is too high', done => {
+  it('returns error if off variation is too high', () => {
     var flag = {
       key: 'feature',
       on: false,
@@ -102,15 +98,13 @@ describe('evaluate', () => {
       variations: ['a', 'b', 'c']
     };
     var user = { key: 'x' };
-    evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail, events) => {
-      expect(err).toEqual(Error('Invalid variation index in flag'));
-      expect(detail).toMatchObject({ value: null, variationIndex: null, reason: { kind: 'ERROR', errorKind: 'MALFORMED_FLAG' } });
-      expect(events).toMatchObject([]);
-      done();
-    });
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(err).toEqual(Error('Invalid variation index in flag'));
+    expect(detail).toMatchObject({ value: null, variationIndex: null, reason: { kind: 'ERROR', errorKind: 'MALFORMED_FLAG' } });
+    expect(events).toMatchObject([]);
   });
 
-  it('returns error if off variation is negative', done => {
+  it('returns error if off variation is negative', () => {
     var flag = {
       key: 'feature',
       on: false,
@@ -119,96 +113,84 @@ describe('evaluate', () => {
       variations: ['a', 'b', 'c']
     };
     var user = { key: 'x' };
-    evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail, events) => {
-      expect(err).toEqual(Error('Invalid variation index in flag'));
-      expect(detail).toMatchObject({ value: null, variationIndex: null, reason: { kind: 'ERROR', errorKind: 'MALFORMED_FLAG' } });
-      expect(events).toMatchObject([]);
-      done();
-    });
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(err).toEqual(Error('Invalid variation index in flag'));
+    expect(detail).toMatchObject({ value: null, variationIndex: null, reason: { kind: 'ERROR', errorKind: 'MALFORMED_FLAG' } });
+    expect(events).toMatchObject([]);
   });
 
-  it('returns fallthrough variation if flag is on and no rules match', done => {
+  it('returns fallthrough variation if flag is on and no rules match', () => {
     var rule = { id: 'id', clauses: [{ attribute: 'key', op: 'in', values: ['other'] }], variation: 2 };
     var flag = makeFlagWithRules([rule], { variation: 0 });
     var user = { key: 'x' };
-    evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail, events) => {
-      expect(detail).toMatchObject({ value: 'a', variationIndex: 0, reason: { kind: 'FALLTHROUGH' } });
-      expect(events).toMatchObject([]);
-      done();
-    });
+    const { detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(detail).toMatchObject({ value: 'a', variationIndex: 0, reason: { kind: 'FALLTHROUGH' } });
+    expect(events).toMatchObject([]);
   });
 
-  it('returns error if fallthrough variation is too high', done => {
+  it('returns error if fallthrough variation is too high', () => {
     var rule = { id: 'id', clauses: [{ attribute: 'key', op: 'in', values: ['other'] }], variation: 99 };
     var flag = makeFlagWithRules([rule], { variation: 99 });
     var user = { key: 'x' };
-    evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail, events) => {
-      expect(err).toEqual(Error('Invalid variation index in flag'));
-      expect(detail).toMatchObject({ value: null, variationIndex: null, reason: { kind: 'ERROR', errorKind: 'MALFORMED_FLAG' }});
-      expect(events).toMatchObject([]);
-      done();
-    });
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(err).toEqual(Error('Invalid variation index in flag'));
+    expect(detail).toMatchObject({ value: null, variationIndex: null, reason: { kind: 'ERROR', errorKind: 'MALFORMED_FLAG' } });
+    expect(events).toMatchObject([]);
   });
 
-  it('returns error if fallthrough variation is negative', done => {
+  it('returns error if fallthrough variation is negative', () => {
     var rule = { id: 'id', clauses: [{ attribute: 'key', op: 'in', values: ['other'] }], variation: 99 };
     var flag = makeFlagWithRules([rule], { variation: -1 });
     var user = { key: 'x' };
-    evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail, events) => {
-      expect(err).toEqual(Error('Invalid variation index in flag'));
-      expect(detail).toMatchObject({ value: null, variationIndex: null, reason: { kind: 'ERROR', errorKind: 'MALFORMED_FLAG' }});
-      expect(events).toMatchObject([]);
-      done();
-    });
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(err).toEqual(Error('Invalid variation index in flag'));
+    expect(detail).toMatchObject({ value: null, variationIndex: null, reason: { kind: 'ERROR', errorKind: 'MALFORMED_FLAG' } });
+    expect(events).toMatchObject([]);
   });
 
-  it('returns error if fallthrough has no variation or rollout', done => {
+  it('returns error if fallthrough has no variation or rollout', () => {
     var rule = { id: 'id', clauses: [{ attribute: 'key', op: 'in', values: ['other'] }], variation: 99 };
-    var flag = makeFlagWithRules([rule], { });
+    var flag = makeFlagWithRules([rule], {});
     var user = { key: 'x' };
-    evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail, events) => {
-      expect(err).toEqual(Error('Variation/rollout object with no variation or rollout'));
-      expect(detail).toMatchObject({ value: null, variationIndex: null, reason: { kind: 'ERROR', errorKind: 'MALFORMED_FLAG' }});
-      expect(events).toMatchObject([]);
-      done();
-    });
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(err).toEqual(Error('Variation/rollout object with no variation or rollout'));
+    expect(detail).toMatchObject({ value: null, variationIndex: null, reason: { kind: 'ERROR', errorKind: 'MALFORMED_FLAG' } });
+    expect(events).toMatchObject([]);
   });
 
-  it('returns error if fallthrough has rollout with no variations', done => {
+  it('returns error if fallthrough has rollout with no variations', () => {
     var rule = { id: 'id', clauses: [{ attribute: 'key', op: 'in', values: ['other'] }], variation: 99 };
     var flag = makeFlagWithRules([rule], { rollout: { variations: [] } });
     var user = { key: 'x' };
-    evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail, events) => {
-      expect(err).toEqual(Error('Variation/rollout object with no variation or rollout'));
-      expect(detail).toMatchObject({ value: null, variationIndex: null, reason: { kind: 'ERROR', errorKind: 'MALFORMED_FLAG' }});
-      expect(events).toMatchObject([]);
-      done();
-    });
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(err).toEqual(Error('Variation/rollout object with no variation or rollout'));
+    expect(detail).toMatchObject({ value: null, variationIndex: null, reason: { kind: 'ERROR', errorKind: 'MALFORMED_FLAG' } });
+    expect(events).toMatchObject([]);
   });
 
-  it('returns off variation if prerequisite is not found', done => {
+  it('returns off variation if prerequisite is not found', () => {
     var flag = {
       key: 'feature0',
       on: true,
-      prerequisites: [{key: 'badfeature', variation: 1}],
+      prerequisites: [{ key: 'badfeature', variation: 1 }],
       fallthrough: { variation: 0 },
       offVariation: 1,
       variations: ['a', 'b', 'c']
     };
     var user = { key: 'x' };
-    evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail, events) => {
-      expect(detail).toMatchObject({ value: 'b', variationIndex: 1,
-        reason: { kind: 'PREREQUISITE_FAILED', prerequisiteKey: 'badfeature' } });
-      expect(events).toMatchObject([]);
-      done();
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(detail).toMatchObject({
+      value: 'b', variationIndex: 1,
+      reason: { kind: 'PREREQUISITE_FAILED', prerequisiteKey: 'badfeature' }
     });
+    expect(events).toMatchObject([]);
   });
 
-  it('returns off variation and event if prerequisite is off', done => {
+  it('returns off variation and event if prerequisite is off', () => {
     var flag = {
       key: 'feature0',
       on: true,
-      prerequisites: [{key: 'feature1', variation: 1}],
+      prerequisites: [{ key: 'feature1', variation: 1 }],
       fallthrough: { variation: 0 },
       offVariation: 1,
       targets: [],
@@ -227,25 +209,24 @@ describe('evaluate', () => {
       variations: ['d', 'e'],
       version: 2
     };
-    defineFeatures([flag, flag1], () => {
-      var user = { key: 'x' };
-      var eventsShouldBe = [
-        { kind: 'feature', key: 'feature1', variation: 1, value: 'e', version: 2, prereqOf: 'feature0' }
-      ];
-      evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail, events) => {
-        expect(detail).toMatchObject({ value: 'b', variationIndex: 1,
-          reason: { kind: 'PREREQUISITE_FAILED', prerequisiteKey: 'feature1' } });
-        expect(events).toMatchObject(eventsShouldBe);
-        done();
-      });
+    defineFeatures([flag, flag1]);
+    var user = { key: 'x' };
+    var eventsShouldBe = [
+      { kind: 'feature', key: 'feature1', variation: 1, value: 'e', version: 2, prereqOf: 'feature0' }
+    ];
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(detail).toMatchObject({
+      value: 'b', variationIndex: 1,
+      reason: { kind: 'PREREQUISITE_FAILED', prerequisiteKey: 'feature1' }
     });
+    expect(events).toMatchObject(eventsShouldBe);
   });
 
-  it('returns off variation and event if prerequisite is not met', done => {
+  it('returns off variation and event if prerequisite is not met', () => {
     var flag = {
       key: 'feature0',
       on: true,
-      prerequisites: [{key: 'feature1', variation: 1}],
+      prerequisites: [{ key: 'feature1', variation: 1 }],
       fallthrough: { variation: 0 },
       offVariation: 1,
       targets: [],
@@ -262,25 +243,24 @@ describe('evaluate', () => {
       variations: ['d', 'e'],
       version: 2
     };
-    defineFeatures([flag, flag1], () => {
-      var user = { key: 'x' };
-      var eventsShouldBe = [
-        { kind: 'feature', key: 'feature1', variation: 0, value: 'd', version: 2, prereqOf: 'feature0' }
-      ];
-      evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail, events) => {
-        expect(detail).toMatchObject({ value: 'b', variationIndex: 1,
-          reason: { kind: 'PREREQUISITE_FAILED', prerequisiteKey: 'feature1' } });
-        expect(events).toMatchObject(eventsShouldBe);
-        done();
-      });
+    defineFeatures([flag, flag1]);
+    var user = { key: 'x' };
+    var eventsShouldBe = [
+      { kind: 'feature', key: 'feature1', variation: 0, value: 'd', version: 2, prereqOf: 'feature0' }
+    ];
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(detail).toMatchObject({
+      value: 'b', variationIndex: 1,
+      reason: { kind: 'PREREQUISITE_FAILED', prerequisiteKey: 'feature1' }
     });
+    expect(events).toMatchObject(eventsShouldBe);
   });
 
-  it('returns fallthrough variation and event if prerequisite is met and there are no rules', done => {
+  it('returns fallthrough variation and event if prerequisite is met and there are no rules', () => {
     var flag = {
       key: 'feature0',
       on: true,
-      prerequisites: [{key: 'feature1', variation: 1}],
+      prerequisites: [{ key: 'feature1', variation: 1 }],
       fallthrough: { variation: 0 },
       offVariation: 1,
       targets: [],
@@ -297,112 +277,97 @@ describe('evaluate', () => {
       variations: ['d', 'e'],
       version: 2
     };
-    defineFeatures([flag, flag1], () => {
-      var user = { key: 'x' };
-      var eventsShouldBe = [
-        { kind: 'feature', key: 'feature1', variation: 1, value: 'e', version: 2, prereqOf: 'feature0' }
-      ];
-      evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail, events) => {
-        expect(detail).toMatchObject({ value: 'a', variationIndex: 0, reason: { kind: 'FALLTHROUGH' } });
-        expect(events).toMatchObject(eventsShouldBe);
-        done();
-      });
-    });
+    defineFeatures([flag, flag1]);
+    var user = { key: 'x' };
+    var eventsShouldBe = [
+      { kind: 'feature', key: 'feature1', variation: 1, value: 'e', version: 2, prereqOf: 'feature0' }
+    ];
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(detail).toMatchObject({ value: 'a', variationIndex: 0, reason: { kind: 'FALLTHROUGH' } });
+    expect(events).toMatchObject(eventsShouldBe);
   });
 
-  it('matches user from rules', done => {
+  it('matches user from rules', () => {
     var rule0 = { id: 'id0', clauses: [{ attribute: 'key', op: 'in', values: ['nope'] }], variation: 1 };
     var rule1 = { id: 'id1', clauses: [{ attribute: 'key', op: 'in', values: ['userkey'] }], variation: 2 };
     var flag = makeFlagWithRules([rule0, rule1]);
     var user = { key: 'userkey' };
-    evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail, events) => {
-      expect(detail).toMatchObject({ value: 'c', variationIndex: 2,
-        reason: { kind: 'RULE_MATCH', ruleIndex: 1, ruleId: 'id1' } });
-      expect(events).toMatchObject([]);
-      done();
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(detail).toMatchObject({
+      value: 'c', variationIndex: 2,
+      reason: { kind: 'RULE_MATCH', ruleIndex: 1, ruleId: 'id1' }
     });
+    expect(events).toMatchObject([]);
   });
 
-  it('returns error if rule variation is too high', done => {
+  it('returns error if rule variation is too high', () => {
     var rule = { id: 'id', clauses: [{ attribute: 'key', op: 'in', values: ['userkey'] }], variation: 99 };
     var flag = makeFlagWithRules([rule]);
     var user = { key: 'userkey' };
-    evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail, events) => {
-      expect(err).toEqual(Error('Invalid variation index in flag'));
-      expect(detail).toMatchObject({ value: null, variationIndex: null, reason: { kind: 'ERROR', errorKind: 'MALFORMED_FLAG' }});
-      expect(events).toMatchObject([]);
-      done();
-    });
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(err).toEqual(Error('Invalid variation index in flag'));
+    expect(detail).toMatchObject({ value: null, variationIndex: null, reason: { kind: 'ERROR', errorKind: 'MALFORMED_FLAG' } });
+    expect(events).toMatchObject([]);
   });
 
-  it('returns error if rule variation is negative', done => {
+  it('returns error if rule variation is negative', () => {
     var rule = { id: 'id', clauses: [{ attribute: 'key', op: 'in', values: ['userkey'] }], variation: -1 };
     var flag = makeFlagWithRules([rule]);
     var user = { key: 'userkey' };
-    evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail, events) => {
-      expect(err).toEqual(Error('Invalid variation index in flag'));
-      expect(detail).toMatchObject({ value: null, variationIndex: null, reason: { kind: 'ERROR', errorKind: 'MALFORMED_FLAG' }});
-      expect(events).toMatchObject([]);
-      done();
-    });
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(err).toEqual(Error('Invalid variation index in flag'));
+    expect(detail).toMatchObject({ value: null, variationIndex: null, reason: { kind: 'ERROR', errorKind: 'MALFORMED_FLAG' } });
+    expect(events).toMatchObject([]);
   });
 
-  it('returns error if rule has no variation or rollout', done => {
+  it('returns error if rule has no variation or rollout', () => {
     var rule = { id: 'id', clauses: [{ attribute: 'key', op: 'in', values: ['userkey'] }] };
     var flag = makeFlagWithRules([rule]);
     var user = { key: 'userkey' };
-    evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail, events) => {
-      expect(err).toEqual(Error('Variation/rollout object with no variation or rollout'));
-      expect(detail).toMatchObject({ value: null, variationIndex: null, reason: { kind: 'ERROR', errorKind: 'MALFORMED_FLAG' }});
-      expect(events).toMatchObject([]);
-      done();
-    });
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(err).toEqual(Error('Variation/rollout object with no variation or rollout'));
+    expect(detail).toMatchObject({ value: null, variationIndex: null, reason: { kind: 'ERROR', errorKind: 'MALFORMED_FLAG' } });
+    expect(events).toMatchObject([]);
   });
 
-  it('returns error if rule has rollout with no variations', done => {
+  it('returns error if rule has rollout with no variations', () => {
     var rule = { id: 'id', clauses: [{ attribute: 'key', op: 'in', values: ['userkey'] }], rollout: { variations: [] } };
     var flag = makeFlagWithRules([rule]);
     var user = { key: 'userkey' };
-    evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail, events) => {
-      expect(err).toEqual(Error('Variation/rollout object with no variation or rollout'));
-      expect(detail).toMatchObject({ value: null, variationIndex: null, reason: { kind: 'ERROR', errorKind: 'MALFORMED_FLAG' }});
-      expect(events).toMatchObject([]);
-      done();
-    });
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(err).toEqual(Error('Variation/rollout object with no variation or rollout'));
+    expect(detail).toMatchObject({ value: null, variationIndex: null, reason: { kind: 'ERROR', errorKind: 'MALFORMED_FLAG' } });
+    expect(events).toMatchObject([]);
   });
 
-  it('coerces user key to string', done => {
-    var clause = { 'attribute': 'key', 'op': 'in', 'values': [ '999' ] };
+  it('coerces user key to string', () => {
+    var clause = { 'attribute': 'key', 'op': 'in', 'values': ['999'] };
     var flag = makeBooleanFlagWithOneClause(clause);
     var user = { 'key': 999 };
-    evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail) => {
-      expect(detail.value).toBe(true);
-      done();
-    });
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(detail.value).toBe(true);
   });
 
-  it('coerces secondary key to string', done => {
+  it('coerces secondary key to string', () => {
     // We can't really verify that the rollout calculation works correctly, but we can at least
     // make sure it doesn't error out if there's a non-string secondary value (ch35189)
     var rule = {
       id: 'ruleid',
       clauses: [
-        { attribute: 'key', op: 'in', values: [ 'userkey' ] }
+        { attribute: 'key', op: 'in', values: ['userkey'] }
       ],
       rollout: {
-        salt:  '',
-        variations: [ { weight: 100000, variation: 1 } ]
+        salt: '',
+        variations: [{ weight: 100000, variation: 1 }]
       }
     };
-    var flag = makeBooleanFlagWithRules([ rule ]);
+    var flag = makeBooleanFlagWithRules([rule]);
     var user = { key: 'userkey', secondary: 999 };
-    evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail) => {
-      expect(detail.value).toBe(true);
-      done();
-    });
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(detail.value).toBe(true);
   });
 
-  it('matches user from targets', done => {
+  it('matches user from targets', () => {
     var flag = {
       key: 'feature0',
       on: true,
@@ -418,111 +383,95 @@ describe('evaluate', () => {
       variations: ['a', 'b', 'c']
     };
     var user = { key: 'userkey' };
-    evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail, events) => {
-      expect(detail).toMatchObject({ value: 'c', variationIndex: 2, reason: { kind: 'TARGET_MATCH' } });
-      expect(events).toMatchObject([]);
-      done();
-    });
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(detail).toMatchObject({ value: 'c', variationIndex: 2, reason: { kind: 'TARGET_MATCH' } });
+    expect(events).toMatchObject([]);
   });
 
-  function testClauseMatch(clause, user, shouldBe, done) {
+  function testClauseMatch(clause, user, shouldBe) {
     var flag = makeBooleanFlagWithOneClause(clause);
-    evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail) => {
-      expect(detail.value).toBe(shouldBe);
-      done();
-    });
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(detail.value).toBe(shouldBe);
   }
 
-  it('can match built-in attribute', done => {
+  it('can match built-in attribute', () => {
     var user = { key: 'x', name: 'Bob' };
     var clause = { attribute: 'name', op: 'in', values: ['Bob'] };
-    testClauseMatch(clause, user, true, done);
+    testClauseMatch(clause, user, true);
   });
 
-  it('can match custom attribute', done => {
+  it('can match custom attribute', () => {
     var user = { key: 'x', name: 'Bob', custom: { legs: 4 } };
     var clause = { attribute: 'legs', op: 'in', values: [4] };
-    testClauseMatch(clause, user, true, done);
+    testClauseMatch(clause, user, true);
   });
 
-  it('does not match missing attribute', done => {
+  it('does not match missing attribute', () => {
     var user = { key: 'x', name: 'Bob' };
     var clause = { attribute: 'legs', op: 'in', values: [4] };
-    testClauseMatch(clause, user, false, done);
+    testClauseMatch(clause, user, false);
   });
 
-  it('can have a negated clause', done => {
+  it('can have a negated clause', () => {
     var user = { key: 'x', name: 'Bob' };
     var clause = { attribute: 'name', op: 'in', values: ['Bob'], negate: true };
-    testClauseMatch(clause, user, false, done);
+    testClauseMatch(clause, user, false);
   });
 
-  it('matches segment with explicitly included user', done => {
+  it('matches segment with explicitly included user', () => {
     var segment = {
       key: 'test',
-      included: [ 'foo' ],
+      included: ['foo'],
       version: 1
     };
-    defineSegment(segment, () => {
-      var flag = makeFlagWithSegmentMatch(segment);
-      var user = { key: 'foo' };
-      evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail) => {
-        expect(detail.value).toBe(true);
-        done();
-      });
-    });
+    defineSegment(segment);
+    var flag = makeFlagWithSegmentMatch(segment);
+    var user = { key: 'foo' };
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(detail.value).toBe(true);
   });
 
-  it('does not match segment with explicitly excluded user', done => {
+  it('does not match segment with explicitly excluded user', () => {
     var segment = {
       key: 'test',
-      excluded: [ 'foo' ],
+      excluded: ['foo'],
       version: 1
     };
-    defineSegment(segment, () => {
-      var flag = makeFlagWithSegmentMatch(segment);
-      var user = { key: 'foo' };
-      evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail) => {
-        expect(detail.value).toBe(false);
-        done();
-      });
-    });
+    defineSegment(segment);
+    var flag = makeFlagWithSegmentMatch(segment);
+    var user = { key: 'foo' };
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(detail.value).toBe(false);
   });
 
-  it('does not match segment with unknown user', done => {
+  it('does not match segment with unknown user', () => {
     var segment = {
       key: 'test',
-      included: [ 'foo' ],
+      included: ['foo'],
       version: 1
     };
-    defineSegment(segment, () => {
-      var flag = makeFlagWithSegmentMatch(segment);
-      var user = { key: 'bar' };
-      evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail) => {
-        expect(detail.value).toBe(false);
-        done();
-      });
-    });
+    defineSegment(segment);
+    var flag = makeFlagWithSegmentMatch(segment);
+    var user = { key: 'bar' };
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(detail.value).toBe(false);
   });
 
-  it('matches segment with user who is both included and excluded', done => {
+  it('matches segment with user who is both included and excluded', () => {
     var segment = {
       key: 'test',
-      included: [ 'foo' ],
-      excluded: [ 'foo' ],
+      included: ['foo'],
+      excluded: ['foo'],
       version: 1
     };
-    defineSegment(segment, () => {
-      var flag = makeFlagWithSegmentMatch(segment);
-      var user = { key: 'foo' };
-      evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail) => {
-        expect(detail.value).toBe(true);
-        done();
-      });
-    });
+    defineSegment(segment);
+    var flag = makeFlagWithSegmentMatch(segment);
+    var user = { key: 'foo' };
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(detail.value).toBe(true);
   });
 
-  it('matches segment with rule with full rollout', done => {
+  it('matches segment with rule with full rollout', () => {
     var segment = {
       key: 'test',
       rules: [
@@ -531,7 +480,7 @@ describe('evaluate', () => {
             {
               attribute: 'email',
               op: 'in',
-              values: [ 'test@example.com' ]
+              values: ['test@example.com']
             }
           ],
           weight: 100000
@@ -539,17 +488,14 @@ describe('evaluate', () => {
       ],
       version: 1
     };
-    defineSegment(segment, () => {
-      var flag = makeFlagWithSegmentMatch(segment);
-      var user = { key: 'foo', email: 'test@example.com' };
-      evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail) => {
-        expect(detail.value).toBe(true);
-        done();
-      });
-    });
+    defineSegment(segment);
+    var flag = makeFlagWithSegmentMatch(segment);
+    var user = { key: 'foo', email: 'test@example.com' };
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(detail.value).toBe(true);
   });
 
-  it('does not match segment with rule with zero rollout', done => {
+  it('does not match segment with rule with zero rollout', () => {
     var segment = {
       key: 'test',
       rules: [
@@ -558,7 +504,7 @@ describe('evaluate', () => {
             {
               attribute: 'email',
               op: 'in',
-              values: [ 'test@example.com' ]
+              values: ['test@example.com']
             }
           ],
           weight: 0
@@ -566,17 +512,14 @@ describe('evaluate', () => {
       ],
       version: 1
     };
-    defineSegment(segment, () => {
-      var flag = makeFlagWithSegmentMatch(segment);
-      var user = { key: 'foo', email: 'test@example.com' };
-      evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail) => {
-        expect(detail.value).toBe(false);
-        done();
-      });
-    });
+    defineSegment(segment);
+    var flag = makeFlagWithSegmentMatch(segment);
+    var user = { key: 'foo', email: 'test@example.com' };
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(detail.value).toBe(false);
   });
 
-  it('matches segment with multiple matching clauses', done => {
+  it('matches segment with multiple matching clauses', () => {
     var segment = {
       key: 'test',
       rules: [
@@ -585,29 +528,26 @@ describe('evaluate', () => {
             {
               attribute: 'email',
               op: 'in',
-              values: [ 'test@example.com' ]
+              values: ['test@example.com']
             },
             {
               attribute: 'name',
               op: 'in',
-              values: [ 'bob' ]
+              values: ['bob']
             }
           ]
         }
       ],
       version: 1
     };
-    defineSegment(segment, () => {
-      var flag = makeFlagWithSegmentMatch(segment);
-      var user = { key: 'foo', email: 'test@example.com', name: 'bob' };
-      evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail) => {
-        expect(detail.value).toBe(true);
-        done();
-      });
-    });
+    defineSegment(segment);
+    var flag = makeFlagWithSegmentMatch(segment);
+    var user = { key: 'foo', email: 'test@example.com', name: 'bob' };
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(detail.value).toBe(true);
   });
 
-  it('does not match segment if one clause does not match', done => {
+  it('does not match segment if one clause does not match', () => {
     var segment = {
       key: 'test',
       rules: [
@@ -616,29 +556,26 @@ describe('evaluate', () => {
             {
               attribute: 'email',
               op: 'in',
-              values: [ 'test@example.com' ]
+              values: ['test@example.com']
             },
             {
               attribute: 'name',
               op: 'in',
-              values: [ 'bill' ]
+              values: ['bill']
             }
           ]
         }
       ],
       version: 1
     };
-    defineSegment(segment, () => {
-      var flag = makeFlagWithSegmentMatch(segment);
-      var user = { key: 'foo', email: 'test@example.com', name: 'bob' };
-      evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail) => {
-        expect(detail.value).toBe(false);
-        done();
-      });
-    });
+    defineSegment(segment);
+    var flag = makeFlagWithSegmentMatch(segment);
+    var user = { key: 'foo', email: 'test@example.com', name: 'bob' };
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(detail.value).toBe(false);
   });
 
-  it('does not overflow the call stack when evaluating a huge number of rules', done => {
+  it('does not overflow the call stack when evaluating a huge number of rules', () => {
     var ruleCount = 5000;
     var flag = {
       key: 'flag',
@@ -659,14 +596,12 @@ describe('evaluate', () => {
       rules.push({ clauses: [clause], variation: 1 });
     }
     flag.rules = rules;
-    evaluate.evaluate(flag, {key: 'user'}, featureStore, eventFactory, (err, detail) => {
-      expect(err).toEqual(null);
-      expect(detail.value).toEqual(false);
-      done();
-    });
+    const { err, detail, events } = evaluate.evaluate(flag, { key: 'user' }, featureStore, eventFactory);
+    expect(err).toEqual(null);
+    expect(detail.value).toEqual(false);
   });
 
-  it('does not overflow the call stack when evaluating a huge number of clauses', done => {
+  it('does not overflow the call stack when evaluating a huge number of clauses', () => {
     var clauseCount = 5000;
     var flag = {
       key: 'flag',
@@ -688,16 +623,14 @@ describe('evaluate', () => {
     }
     var rule = { clauses: clauses, variation: 1 };
     flag.rules = [rule];
-    evaluate.evaluate(flag, {key: 'user'}, featureStore, eventFactory, (err, detail) => {
-      expect(err).toEqual(null);
-      expect(detail.value).toEqual(true);
-      done();
-    });
+    const { err, detail, events } = evaluate.evaluate(flag, { key: 'user' }, featureStore, eventFactory);
+    expect(err).toEqual(null);
+    expect(detail.value).toEqual(true);
   });
 });
 
 describe('rollout', () => {
-  it('selects bucket', done => {
+  it('selects bucket', () => {
     const user = { key: 'userkey' };
     const flagKey = 'flagkey';
     const salt = 'salt';
@@ -721,38 +654,34 @@ describe('rollout', () => {
       salt: salt,
       on: true,
       fallthrough: { rollout: rollout },
-      variations: [ null, null, null ]
+      variations: [null, null, null]
     };
-    evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail) => {
-      expect(err).toEqual(null);
-      expect(detail.variationIndex).toEqual(matchedVariation);
-      done();
-    });
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(err).toEqual(null);
+    expect(detail.variationIndex).toEqual(matchedVariation);
   });
 
-  it('uses last bucket if bucket value is equal to total weight', done => {
+  it('uses last bucket if bucket value is equal to total weight', () => {
     const user = { key: 'userkey' };
     const flagKey = 'flagkey';
     const salt = 'salt';
 
     // We'll construct a list of variations that stops right at the target bucket value
     const bucketValue = Math.floor(evaluate.bucketUser(user, flagKey, 'key', salt) * 100000);
-    
+
     const rollout = {
-      variations: [ { variation: 0, weight: bucketValue }]
+      variations: [{ variation: 0, weight: bucketValue }]
     };
     const flag = {
       key: flagKey,
       salt: salt,
       on: true,
       fallthrough: { rollout: rollout },
-      variations: [ null, null, null ]
+      variations: [null, null, null]
     };
-    evaluate.evaluate(flag, user, featureStore, eventFactory, (err, detail) => {
-      expect(err).toEqual(null);
-      expect(detail.variationIndex).toEqual(0);
-      done();
-    });
+    const { err, detail, events } = evaluate.evaluate(flag, user, featureStore, eventFactory);
+    expect(err).toEqual(null);
+    expect(detail.variationIndex).toEqual(0);
   });
 });
 

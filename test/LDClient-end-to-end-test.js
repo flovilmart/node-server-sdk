@@ -45,7 +45,7 @@ describe('LDClient end-to-end', () => {
         await client.waitForInitialization();
         expect(client.initialized()).toBe(true);
 
-        const value = await client.variation(flag.key, user);
+        const value = client.variation(flag.key, user);
         expect(value).toEqual(expectedFlagValue);
 
         await client.flush();
@@ -60,7 +60,7 @@ describe('LDClient end-to-end', () => {
       expect(req1.path).toEqual('/bulk');
     });
   });
-  
+
   it('fails in polling mode with 401 error', async () => {
     await withAllServers(async (servers, config) => {
       servers.polling.forMethodAndPath('get', '/sdk/latest-all', TestHttpHandlers.respond(401));
@@ -92,10 +92,10 @@ describe('LDClient end-to-end', () => {
           await client.waitForInitialization();
           expect(client.initialized()).toBe(true);
 
-          const value = await client.variation(flag.key, user);
+          const value = client.variation(flag.key, user);
           expect(value).toEqual(expectedFlagValue);
 
-          await client.flush();  
+          await client.flush();
         });
 
         expect(servers.polling.requestCount()).toEqual(0);

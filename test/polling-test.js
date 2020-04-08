@@ -59,9 +59,9 @@ describe('PollingProcessor', () => {
 
     await promisify(processor.start)();
 
-    const flags = await promisifySingle(store.all)(dataKind.features);
+    const flags = store.all(dataKind.features);
     expect(flags).toEqual(allData.flags);
-    const segments = await promisifySingle(store.all)(dataKind.segments);
+    const segments = store.all(dataKind.segments);
     expect(segments).toEqual(allData.segments);
   });
 
@@ -93,7 +93,7 @@ describe('PollingProcessor', () => {
     expect(config.logger.error).not.toHaveBeenCalled();
     expect(errReceived).toBeUndefined();
   }
-  
+
   function testRecoverableHttpError(status) {
     const err = new Error('sorry');
     err.status = status;

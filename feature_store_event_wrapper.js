@@ -162,94 +162,88 @@ function FeatureStoreEventWrapper(featureStore, emitter) {
     initialized: featureStore.initialized.bind(featureStore),
     close: featureStore.close.bind(featureStore),
 
-    init: (newData, callback) => {
+    init: newData => {
       const checkForChanges = hasEventListeners();
       const doInit = oldData => {
-        featureStore.init(newData, () => {
-          dependencyTracker.reset();
+        featureStore.init(newData);
 
+        dependencyTracker.reset();
+
+        for (const namespace in newData) {
+          const items = newData[namespace];
+          const kind = dataKind[namespace];
+          for (const key in items) {
+            const item = items[key];
+            dependencyTracker.updateDependenciesFrom(namespace, key, computeDependencies(kind, item));
+          }
+        }
+
+        if (checkForChanges) {
+          const updatedItems = NamespacedDataSet();
           for (const namespace in newData) {
-            const items = newData[namespace];
-            const kind = dataKind[namespace];
-            for (const key in items) {
-              const item = items[key];
-              dependencyTracker.updateDependenciesFrom(namespace, key, computeDependencies(kind, item));
+            const oldDataForKind = oldData[namespace];
+            const newDataForKind = newData[namespace];
+            const mergedData = Object.assign({}, oldDataForKind, newDataForKind);
+            for (const key in mergedData) {
+              addIfModified(
+                namespace,
+                key,
+                oldDataForKind && oldDataForKind[key],
+                newDataForKind && newDataForKind[key],
+                updatedItems
+              );
             }
           }
-
-          if (checkForChanges) {
-            const updatedItems = NamespacedDataSet();
-            for (const namespace in newData) {
-              const oldDataForKind = oldData[namespace];
-              const newDataForKind = newData[namespace];
-              const mergedData = Object.assign({}, oldDataForKind, newDataForKind);
-              for (const key in mergedData) {
-                addIfModified(
-                  namespace,
-                  key,
-                  oldDataForKind && oldDataForKind[key],
-                  newDataForKind && newDataForKind[key],
-                  updatedItems
-                );
-              }
-            }
-            sendChangeEvents(updatedItems);
-          }
-
-          callback && callback();
-        });
+          sendChangeEvents(updatedItems);
+        }
       };
 
       if (checkForChanges) {
-        featureStore.all(dataKind.features, oldFlags => {
-          featureStore.all(dataKind.segments, oldSegments => {
-            const oldData = {};
-            oldData[dataKind.features.namespace] = oldFlags;
-            oldData[dataKind.segments.namespace] = oldSegments;
-            doInit(oldData);
-          });
-        });
+        const oldFlags = featureStore.all(dataKind.features);
+        const oldSegments = featureStore.all(dataKind.segments);
+        const oldData = {};
+        oldData[dataKind.features.namespace] = oldFlags;
+        oldData[dataKind.segments.namespace] = oldSegments;
+        doInit(oldData);
       } else {
         doInit();
       }
     },
 
-    delete: (kind, key, version, callback) => {
+    delete: (kind, key, version) => {
       const checkForChanges = hasEventListeners();
       const doDelete = oldItem => {
-        featureStore.delete(kind, key, version, () => {
-          dependencyTracker.updateDependenciesFrom(kind.namespace, key, null);
-          if (checkForChanges) {
-            const updatedItems = NamespacedDataSet();
-            addIfModified(kind.namespace, key, oldItem, { version: version, deleted: true }, updatedItems);
-            sendChangeEvents(updatedItems);
-          }
-          callback && callback();
-        });
+        featureStore.delete(kind, key, version);
+        dependencyTracker.updateDependenciesFrom(kind.namespace, key, null);
+        if (checkForChanges) {
+          const updatedItems = NamespacedDataSet();
+          addIfModified(kind.namespace, key, oldItem, { version: version, deleted: true }, updatedItems);
+          sendChangeEvents(updatedItems);
+        }
       };
       if (checkForChanges) {
-        featureStore.get(kind, key, doDelete);
+        const result = featureStore.get(kind, key);
+        doDelete(result);
       } else {
         doDelete();
       }
     },
 
-    upsert: (kind, newItem, callback) => {
+    upsert: (kind, newItem) => {
       const key = newItem.key;
       const checkForChanges = hasEventListeners();
       const doUpsert = oldItem => {
-        featureStore.upsert(kind, newItem, () => {
-          dependencyTracker.updateDependenciesFrom(kind.namespace, key, computeDependencies(kind, newItem));
-          if (checkForChanges) {
-            const updatedItems = NamespacedDataSet();
-            addIfModified(kind.namespace, key, oldItem, newItem, updatedItems);
-            sendChangeEvents(updatedItems);
-          }
-          callback && callback();
-        });
+        featureStore.upsert(kind, newItem);
+        dependencyTracker.updateDependenciesFrom(kind.namespace, key, computeDependencies(kind, newItem));
+        if (checkForChanges) {
+          const updatedItems = NamespacedDataSet();
+          addIfModified(kind.namespace, key, oldItem, newItem, updatedItems);
+          sendChangeEvents(updatedItems);
+        }
       };
       if (checkForChanges) {
-        featureStore.get(kind, key, doUpsert);
+        const result = featureStore.get(kind, key);
+        doUpsert(result);
       } else {
         doUpsert();
       }
