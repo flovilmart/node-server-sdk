@@ -1,4 +1,3 @@
-const winston = require('winston');
 const InMemoryFeatureStore = require('./feature_store');
 const messages = require('./messages');
 
@@ -35,7 +34,7 @@ module.exports = (function() {
     // 'factory' (the last one means it can be either a function or an object).
     eventProcessor: 'object',
     featureStore: 'object',
-    logger: 'object', // winston.Logger
+    logger: 'object', // console
     proxyAgent: 'object',
     proxyAuth: 'string',
     proxyHost: 'string',
@@ -149,18 +148,7 @@ module.exports = (function() {
 
   function validate(options) {
     let config = Object.assign({}, options || {});
-    config.logger =
-      config.logger ||
-      new winston.Logger({
-        level: 'info',
-        transports: [
-          new winston.transports.Console({
-            formatter: function(options) {
-              return '[LaunchDarkly] ' + (options.message ? options.message : '');
-            },
-          }),
-        ],
-      });
+    config.logger = config.logger || console;
 
     checkDeprecatedOptions(config);
 

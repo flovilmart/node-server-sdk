@@ -967,7 +967,7 @@ declare module 'launchdarkly-node-server-sdk' {
 
     /**
      * Configures a logger for warnings and errors. This can be a custom logger or an instance of
-     * `winston.Logger`. By default, it uses the same logger as the rest of the SDK.
+     * `console`. By default, it uses the same logger as the rest of the SDK.
      */
     logger?: LDLogger | object;
   }

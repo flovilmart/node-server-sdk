@@ -1,5 +1,4 @@
 const fs = require('fs'),
-  winston = require('winston'),
   yaml = require('yaml'),
   dataKind = require('./versioned_data_kind');
 
@@ -22,10 +21,7 @@ function FileDataSource(options) {
     let inited = false;
 
     function defaultLogger() {
-      return new winston.Logger({
-        level: 'info',
-        transports: [new winston.transports.Console()],
-      });
+      return console;
     }
 
     function getFileTimestampPromise(path) {
